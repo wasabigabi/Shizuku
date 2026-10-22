@@ -166,4 +166,36 @@ With %1$s, in any terminal app, you can connect to and interact with the shell r
     <string name="dialog_requesting_legacy_message"><![CDATA[<b>%1$s</b> has modern Shizuku support, but it\'s requesting legacy Shizuku. This could because Shizuku is not running, please check in Shizuku app.<p>Legacy Shizuku has been deprecated since March 2019.]]></string>
     <string name="dialog_requesting_legacy_button_open_shizuku">Open Shizuku</string>
 
+    <!-- MCP bridge -->
+    <string name="mcp_agents_title">MCP agents</string>
+    <string name="mcp_home_summary">Pair and control AI agents</string>
+    <string name="mcp_agents_empty">No agents paired yet. Use the menu to pair one.</string>
+    <string name="mcp_agent_summary">%1$s · %2$s</string>
+    <string name="mcp_agent_active">active</string>
+    <string name="mcp_agent_revoked">revoked</string>
+    <plurals name="mcp_agent_tools_count">
+        <item quantity="one">%d tool allowed</item>
+        <item quantity="other">%d tools allowed</item>
+    </plurals>
+    <string name="mcp_agent_detail">ID: %1$s\nPaired: %2$s\nTools allowed: %3$d\nStatus: %4$s</string>
+    <string name="mcp_agent_revoke_action">Revoke</string>
+    <string name="mcp_agent_revoke_title">Revoke agent?</string>
+    <string name="mcp_agent_revoke_message">\"%1$s\" will immediately lose all access. Its token stops working. This cannot be undone.</string>
+
+    <string name="mcp_pair_title">Pair agent</string>
+    <string name="mcp_pair_action">Pair</string>
+    <string name="mcp_pair_message">Give this agent a name you\'ll recognise. You\'ll get a one-time token for it.</string>
+    <string name="mcp_pair_label_hint">Agent name</string>
+    <string name="mcp_pair_default_label">agent</string>
+
+    <string name="mcp_token_title">Pairing token</string>
+    <string name="mcp_token_message">Agent %1$s is paired.\n\nToken (shown only once):\n%2$s\n\nCopy it into the agent now. Treat it like a password — anyone with it can act as this agent. It is not stored in readable form and cannot be shown again.</string>
+    <string name="mcp_token_copy">Copy token</string>
+    <string name="mcp_token_copied">Token copied</string>
+    <string name="mcp_token_done">Done</string>
+
+    <string name="mcp_audit_title">Audit log</string>
+    <string name="mcp_audit_empty">No activity recorded yet.</string>
+    <string name="mcp_audit_line">%1$s · %2$s</string>
+
 </resources>

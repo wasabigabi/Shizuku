@@ -145,6 +145,11 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
 
+    // Used by the MCP manager client (moe.shizuku.manager.mcp) to (de)serialize
+    // the JSON bridge payloads. :server depends on gson only as implementation,
+    // so it is not exposed transitively; declare it here explicitly.
+    implementation 'com.google.code.gson:gson:2.9.0'
+
     implementation project(':server')
     implementation project(':rish')
     implementation project(':starter')

@@ -24,6 +24,7 @@ import moe.shizuku.manager.databinding.AboutDialogBinding
 import moe.shizuku.manager.databinding.HomeActivityBinding
 import moe.shizuku.manager.ktx.toHtml
 import moe.shizuku.manager.management.appsViewModel
+import moe.shizuku.manager.mcp.McpAgentsActivity
 import moe.shizuku.manager.settings.SettingsActivity
 import moe.shizuku.manager.starter.Starter
 import moe.shizuku.manager.utils.AppIconCache
@@ -142,6 +143,10 @@ abstract class HomeActivity : AppBarActivity() {
             }
             R.id.action_settings -> {
                 startActivity(Intent(this, SettingsActivity::class.java))
+                true
+            }
+            R.id.action_mcp_agents -> {
+                startActivity(Intent(this, McpAgentsActivity::class.java))
                 true
             }
             else -> super.onOptionsItemSelected(item)

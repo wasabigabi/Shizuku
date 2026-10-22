@@ -70,6 +70,12 @@
             android:name=".management.ApplicationManagementActivity"
             android:label="@string/home_app_management_title" />
         <activity
+            android:name=".mcp.McpAgentsActivity"
+            android:label="@string/mcp_agents_title" />
+        <activity
+            android:name=".mcp.McpAuditActivity"
+            android:label="@string/mcp_audit_title" />
+        <activity
             android:name=".adb.AdbPairingTutorialActivity"
             android:label="@string/adb_pairing" />
         <activity

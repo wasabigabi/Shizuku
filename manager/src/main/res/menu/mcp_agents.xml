@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/action_pair"
+        android:title="@string/mcp_pair_title"
+        android:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_audit"
+        android:title="@string/mcp_audit_title"
+        android:showAsAction="never" />
+
+</menu>

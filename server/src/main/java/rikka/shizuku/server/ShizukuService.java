@@ -52,6 +52,10 @@ import rikka.parcelablelist.ParcelableListSlice;
 import rikka.rish.RishConfig;
 import rikka.shizuku.ShizukuApiConstants;
 import rikka.shizuku.server.api.IContentProviderUtils;
+import rikka.shizuku.server.mcp.McpAuditLog;
+import rikka.shizuku.server.mcp.McpManagerBridge;
+import rikka.shizuku.server.mcp.McpPolicyManager;
+import rikka.shizuku.server.mcp.McpToolRegistry;
 import rikka.shizuku.server.util.HandlerUtil;
 import rikka.shizuku.server.util.UserHandleCompat;
 
@@ -88,6 +92,11 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
     private final ShizukuConfigManager configManager;
     private final int managerAppId;
 
+    // MCP bridge: authorization & audit foundation. No capability tool is
+    // registered yet and no agent transport exists, so this only maintains the
+    // (empty) policy and serves manager-only administration requests.
+    private final McpManagerBridge mcpManagerBridge;
+
     public ShizukuService() {
         super();
 
@@ -110,6 +119,9 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
 
         configManager = getConfigManager();
         clientManager = getClientManager();
+
+        mcpManagerBridge = new McpManagerBridge(
+                new McpToolRegistry(), new McpPolicyManager(), new McpAuditLog());
 
         ApkChangedObservers.start(ai.sourceDir, () -> {
             if (getManagerApplicationInfo() == null) {
@@ -456,6 +468,19 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
             ParcelableListSlice<PackageInfo> result = getApplications(userId);
             reply.writeNoException();
             result.writeToParcel(reply, android.os.Parcelable.PARCELABLE_WRITE_RETURN_VALUE);
+            return true;
+        } else if (code == ServerConstants.BINDER_TRANSACTION_mcpManagerCall) {
+            data.enforceInterface(ShizukuApiConstants.BINDER_DESCRIPTOR);
+            // Administration of the MCP policy is strictly manager-only.
+            if (UserHandleCompat.getAppId(Binder.getCallingUid()) != managerAppId) {
+                LOGGER.w("mcpManagerCall from non-manager uid %d rejected", Binder.getCallingUid());
+                throw new SecurityException("mcpManagerCall is only allowed from the manager");
+            }
+            String method = data.readString();
+            String argsJson = data.readString();
+            String resultJson = mcpManagerBridge.handle(method != null ? method : "", argsJson);
+            reply.writeNoException();
+            reply.writeString(resultJson);
             return true;
         }
         return super.onTransact(code, data, reply, flags);

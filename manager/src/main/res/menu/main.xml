@@ -8,6 +8,11 @@
         android:showAsAction="ifRoom"/>
 
     <item
+        android:id="@+id/action_mcp_agents"
+        android:title="@string/mcp_agents_title"
+        android:showAsAction="never"/>
+
+    <item
         android:id="@+id/action_stop"
         android:title="@string/action_stop"
         android:showAsAction="never"/>
