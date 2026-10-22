@@ -23,16 +23,42 @@ import java.util.List;
  */
 public final class McpManagerBridge {
 
+    /**
+     * How the bridge turns the loopback transport on/off. The server supplies
+     * the real implementation; tests use a no-op. Applying a change returns the
+     * resulting port (0 when stopped).
+     */
+    public interface TransportControl {
+        int apply(boolean enabled);
+        boolean isRunning();
+        int port();
+    }
+
+    private static final TransportControl NO_TRANSPORT = new TransportControl() {
+        @Override public int apply(boolean enabled) { return 0; }
+        @Override public boolean isRunning() { return false; }
+        @Override public int port() { return 0; }
+    };
+
     private final McpToolRegistry registry;
     private final McpPolicyManager policy;
     private final McpAuditLog audit;
+    private final TransportControl transport;
 
     public McpManagerBridge(@NonNull McpToolRegistry registry,
                             @NonNull McpPolicyManager policy,
                             @NonNull McpAuditLog audit) {
+        this(registry, policy, audit, NO_TRANSPORT);
+    }
+
+    public McpManagerBridge(@NonNull McpToolRegistry registry,
+                            @NonNull McpPolicyManager policy,
+                            @NonNull McpAuditLog audit,
+                            @NonNull TransportControl transport) {
         this.registry = registry;
         this.policy = policy;
         this.audit = audit;
+        this.transport = transport;
     }
 
     /**
@@ -62,12 +88,28 @@ public final class McpManagerBridge {
                     return boolResult(policy.setTrusted(
                             req(args, "agentId"), req(args, "tool"),
                             args.get("trusted").getAsBoolean()));
+                case "getTransportStatus":
+                    return transportStatus();
+                case "setTransportEnabled":
+                    return setTransportEnabled(args.get("enabled").getAsBoolean());
                 default:
                     return error("unknown method: " + method);
             }
         } catch (Throwable tr) {
             return error(tr.getClass().getSimpleName() + ": " + tr.getMessage());
         }
+    }
+
+    private String setTransportEnabled(boolean enabled) {
+        transport.apply(enabled);
+        return transportStatus();
+    }
+
+    private String transportStatus() {
+        JsonObject data = new JsonObject();
+        data.addProperty("running", transport.isRunning());
+        data.addProperty("port", transport.port());
+        return wrap(data);
     }
 
     private String pair(JsonObject args) {

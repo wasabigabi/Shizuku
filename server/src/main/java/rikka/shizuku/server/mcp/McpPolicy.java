@@ -23,6 +23,16 @@ public class McpPolicy {
     public List<Agent> agents = new ArrayList<>();
 
     /**
+     * Whether the loopback agent transport is enabled. Default false: the
+     * device does not listen for agents until the user turns it on.
+     */
+    @SerializedName("transportEnabled")
+    public boolean transportEnabled = false;
+
+    @SerializedName("transportPort")
+    public int transportPort = 0;
+
+    /**
      * One paired agent.
      *
      * The raw pairing token is never stored. Only {@link #tokenHash}

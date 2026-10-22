@@ -198,4 +198,15 @@ With %1$s, in any terminal app, you can connect to and interact with the shell r
     <string name="mcp_audit_empty">No activity recorded yet.</string>
     <string name="mcp_audit_line">%1$s · %2$s</string>
 
+    <string name="mcp_agent_edit_tools">Edit tools</string>
+    <string name="mcp_edit_tools_title">Tools for %1$s</string>
+    <string name="mcp_no_tools">No tools available to grant yet.</string>
+
+    <string name="mcp_transport_title">Agent access</string>
+    <string name="mcp_transport_on">Status: ON (port %1$d)</string>
+    <string name="mcp_transport_off">Status: OFF</string>
+    <string name="mcp_transport_enable">Enable</string>
+    <string name="mcp_transport_disable">Disable</string>
+    <string name="mcp_transport_message">%1$s\n\nAgents connect over local loopback only — never a routable address. From a computer with ADB:\n\nadb forward tcp:%2$d tcp:%2$d\n\nThe agent then connects to 127.0.0.1:%2$d and sends its token with every request. Only allowlisted tools run; sensitive tools still require confirmation.</string>
+
 </resources>

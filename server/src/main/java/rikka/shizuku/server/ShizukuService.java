@@ -53,9 +53,13 @@ import rikka.rish.RishConfig;
 import rikka.shizuku.ShizukuApiConstants;
 import rikka.shizuku.server.api.IContentProviderUtils;
 import rikka.shizuku.server.mcp.McpAuditLog;
+import rikka.shizuku.server.mcp.McpExecutor;
+import rikka.shizuku.server.mcp.McpGate;
 import rikka.shizuku.server.mcp.McpManagerBridge;
 import rikka.shizuku.server.mcp.McpPolicyManager;
 import rikka.shizuku.server.mcp.McpToolRegistry;
+import rikka.shizuku.server.mcp.McpTransportServer;
+import rikka.shizuku.server.mcp.PackagesListTool;
 import rikka.shizuku.server.util.HandlerUtil;
 import rikka.shizuku.server.util.UserHandleCompat;
 
@@ -92,9 +96,9 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
     private final ShizukuConfigManager configManager;
     private final int managerAppId;
 
-    // MCP bridge: authorization & audit foundation. No capability tool is
-    // registered yet and no agent transport exists, so this only maintains the
-    // (empty) policy and serves manager-only administration requests.
+    // MCP bridge: authorization, audit, the first read-only capability tool
+    // (packages.list), and a loopback-only agent transport that is disabled by
+    // default. Manager-only administration is served through mcpManagerBridge.
     private final McpManagerBridge mcpManagerBridge;
 
     public ShizukuService() {
@@ -120,8 +124,7 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
         configManager = getConfigManager();
         clientManager = getClientManager();
 
-        mcpManagerBridge = new McpManagerBridge(
-                new McpToolRegistry(), new McpPolicyManager(), new McpAuditLog());
+        mcpManagerBridge = setupMcp();
 
         ApkChangedObservers.start(ai.sourceDir, () -> {
             if (getManagerApplicationInfo() == null) {
@@ -136,6 +139,51 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
             sendBinderToClient();
             sendBinderToManager();
         });
+    }
+
+    private static McpManagerBridge setupMcp() {
+        final McpToolRegistry registry = new McpToolRegistry();
+        final McpPolicyManager policy = new McpPolicyManager();
+        final McpAuditLog audit = new McpAuditLog();
+        final McpGate gate = new McpGate(registry, policy, audit);
+        final McpExecutor executor = new McpExecutor(registry, policy, gate);
+        executor.register(new PackagesListTool());
+
+        final McpTransportServer transport = new McpTransportServer(executor);
+        if (policy.isTransportEnabled()) {
+            int port = policy.getTransportPort() > 0
+                    ? policy.getTransportPort() : McpTransportServer.DEFAULT_PORT;
+            transport.start(port);
+            policy.setTransport(true, transport.getPort());
+        }
+
+        McpManagerBridge.TransportControl control = new McpManagerBridge.TransportControl() {
+            @Override
+            public int apply(boolean enabled) {
+                if (enabled) {
+                    int port = policy.getTransportPort() > 0
+                            ? policy.getTransportPort() : McpTransportServer.DEFAULT_PORT;
+                    transport.start(port);
+                    policy.setTransport(true, transport.getPort());
+                } else {
+                    transport.stop();
+                    policy.setTransport(false, 0);
+                }
+                return transport.getPort();
+            }
+
+            @Override
+            public boolean isRunning() {
+                return transport.isRunning();
+            }
+
+            @Override
+            public int port() {
+                return transport.getPort();
+            }
+        };
+
+        return new McpManagerBridge(registry, policy, audit, control);
     }
 
     @Override

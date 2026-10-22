@@ -196,4 +196,20 @@ public final class McpPolicyManager {
     public synchronized List<McpPolicy.Agent> listAgents() {
         return new ArrayList<>(policy.agents);
     }
+
+    public synchronized boolean isTransportEnabled() {
+        return policy.transportEnabled;
+    }
+
+    public synchronized int getTransportPort() {
+        return policy.transportPort;
+    }
+
+    public synchronized void setTransport(boolean enabled, int port) {
+        policy.transportEnabled = enabled;
+        if (port > 0) {
+            policy.transportPort = port;
+        }
+        writeLocked();
+    }
 }

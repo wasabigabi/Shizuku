@@ -38,6 +38,12 @@ import rikka.shizuku.Shizuku
  */
 class McpAgentsActivity : AppBarActivity() {
 
+    companion object {
+        // Mirrors McpTransportServer.DEFAULT_PORT; shown in the adb-forward hint
+        // when the transport is currently off (no live port to report).
+        private const val DEFAULT_PORT = 7231
+    }
+
     private lateinit var viewModel: McpViewModel
     private lateinit var binding: McpAgentsActivityBinding
     private val adapter = AgentsAdapter { onAgentClicked(it) }
@@ -99,6 +105,7 @@ class McpAgentsActivity : AppBarActivity() {
             R.id.action_audit -> {
                 startActivity(Intent(this, McpAuditActivity::class.java)); true
             }
+            R.id.action_transport -> { showTransportDialog(); true }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -159,8 +166,76 @@ class McpAgentsActivity : AppBarActivity() {
             .setNegativeButton(android.R.string.cancel, null)
         if (!agent.revoked) {
             builder.setPositiveButton(R.string.mcp_agent_revoke_action) { _, _ -> confirmRevoke(agent) }
+            builder.setNeutralButton(R.string.mcp_agent_edit_tools) { _, _ -> showToolEditor(agent) }
         }
         builder.show()
+    }
+
+    private fun showToolEditor(agent: McpRepository.Agent) {
+        lifecycleScope.launch {
+            try {
+                val tools = withContext(Dispatchers.IO) { McpRepository.listTools() }
+                if (tools.isEmpty()) {
+                    Toast.makeText(this@McpAgentsActivity, R.string.mcp_no_tools, Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                val names = tools.map { it.name }
+                val labels = tools.map { "${it.name}  (${it.dangerLevel})" }.toTypedArray()
+                val checked = BooleanArray(tools.size) { agent.allowedTools.contains(names[it]) }
+                MaterialAlertDialogBuilder(this@McpAgentsActivity)
+                    .setTitle(getString(R.string.mcp_edit_tools_title, agent.label))
+                    .setMultiChoiceItems(labels, checked) { _, which, isChecked -> checked[which] = isChecked }
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        val selected = names.filterIndexed { i, _ -> checked[i] }
+                        lifecycleScope.launch {
+                            try {
+                                withContext(Dispatchers.IO) { McpRepository.setAllowedTools(agent.id, selected) }
+                                viewModel.loadAgents()
+                            } catch (e: Throwable) {
+                                Toast.makeText(this@McpAgentsActivity, e.message ?: "error", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            } catch (e: Throwable) {
+                Toast.makeText(this@McpAgentsActivity, e.message ?: "error", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun showTransportDialog() {
+        lifecycleScope.launch {
+            val status = try {
+                withContext(Dispatchers.IO) { McpRepository.getTransportStatus() }
+            } catch (e: Throwable) {
+                Toast.makeText(this@McpAgentsActivity, e.message ?: "error", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            val port = if (status.running && status.port > 0) status.port else DEFAULT_PORT
+            val state = if (status.running) getString(R.string.mcp_transport_on, status.port)
+            else getString(R.string.mcp_transport_off)
+            val toggle = if (status.running) R.string.mcp_transport_disable else R.string.mcp_transport_enable
+            MaterialAlertDialogBuilder(this@McpAgentsActivity)
+                .setTitle(R.string.mcp_transport_title)
+                .setMessage(getString(R.string.mcp_transport_message, state, port))
+                .setPositiveButton(toggle) { _, _ -> toggleTransport(!status.running) }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun toggleTransport(enable: Boolean) {
+        lifecycleScope.launch {
+            try {
+                val status = withContext(Dispatchers.IO) { McpRepository.setTransportEnabled(enable) }
+                val msg = if (status.running) getString(R.string.mcp_transport_on, status.port)
+                else getString(R.string.mcp_transport_off)
+                Toast.makeText(this@McpAgentsActivity, msg, Toast.LENGTH_SHORT).show()
+            } catch (e: Throwable) {
+                Toast.makeText(this@McpAgentsActivity, e.message ?: "error", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun confirmRevoke(agent: McpRepository.Agent) {

@@ -54,6 +54,8 @@ object McpRepository {
     /** Raw token is returned only here, once, right after pairing. */
     data class Paired(val agentId: String, val rawToken: String)
 
+    data class TransportStatus(val running: Boolean, val port: Int)
+
     class McpException(message: String) : RuntimeException(message)
 
     private fun call(method: String, args: JsonObject? = null): JsonObject {
@@ -143,6 +145,18 @@ object McpRepository {
             addProperty("trusted", trusted)
         }
         return call("setTrusted", args).getAsJsonObject("data").get("ok").asBoolean
+    }
+
+    fun getTransportStatus(): TransportStatus = parseStatus(call("getTransportStatus"))
+
+    fun setTransportEnabled(enabled: Boolean): TransportStatus {
+        val args = JsonObject().apply { addProperty("enabled", enabled) }
+        return parseStatus(call("setTransportEnabled", args))
+    }
+
+    private fun parseStatus(resp: JsonObject): TransportStatus {
+        val data = resp.getAsJsonObject("data")
+        return TransportStatus(data.get("running").asBoolean, data.get("port").asInt)
     }
 
     private fun parseDanger(name: String): DangerLevel = try {
