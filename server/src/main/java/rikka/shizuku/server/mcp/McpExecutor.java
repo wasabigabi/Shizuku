@@ -24,14 +24,28 @@ public final class McpExecutor {
     private final McpToolRegistry registry;
     private final McpPolicyManager policy;
     private final McpGate gate;
+    private final McpConfirmationManager confirmations;
     private final Map<String, CapabilityTool> tools = new LinkedHashMap<>();
 
     public McpExecutor(@NonNull McpToolRegistry registry,
                        @NonNull McpPolicyManager policy,
                        @NonNull McpGate gate) {
+        this(registry, policy, gate, null);
+    }
+
+    /**
+     * @param confirmations when non-null, a {@code REQUIRE_CONFIRMATION}
+     *        decision parks the call for a human decision instead of refusing
+     *        it outright.
+     */
+    public McpExecutor(@NonNull McpToolRegistry registry,
+                       @NonNull McpPolicyManager policy,
+                       @NonNull McpGate gate,
+                       McpConfirmationManager confirmations) {
         this.registry = registry;
         this.policy = policy;
         this.gate = gate;
+        this.confirmations = confirmations;
     }
 
     /** Registers a capability and publishes its descriptor to the registry. */
@@ -62,11 +76,18 @@ public final class McpExecutor {
             case DENY:
                 return error("denied", decision.reason);
             case REQUIRE_CONFIRMATION:
-                // No agent-facing confirmation channel exists yet; it arrives
-                // with the first SENSITIVE/confirming tool. Until then such a
-                // call cannot proceed.
-                return error("confirmation_required",
-                        "this tool requires a confirmation that is not available yet");
+                if (confirmations == null) {
+                    return error("confirmation_required",
+                            "this tool requires a confirmation channel that is not available");
+                }
+                // Park the call and block until the user decides in the manager.
+                boolean approved = confirmations.await(
+                        decision.agentId, decision.agentLabel, toolName, summary);
+                gate.confirm(decision.agentId, decision.agentLabel, toolName, summary, approved);
+                if (!approved) {
+                    return error("rejected", "rejected or timed out awaiting confirmation");
+                }
+                break;
             case ALLOW:
             default:
                 break;

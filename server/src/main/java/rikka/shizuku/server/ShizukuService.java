@@ -53,6 +53,7 @@ import rikka.rish.RishConfig;
 import rikka.shizuku.ShizukuApiConstants;
 import rikka.shizuku.server.api.IContentProviderUtils;
 import rikka.shizuku.server.mcp.McpAuditLog;
+import rikka.shizuku.server.mcp.McpConfirmationManager;
 import rikka.shizuku.server.mcp.McpExecutor;
 import rikka.shizuku.server.mcp.McpGate;
 import rikka.shizuku.server.mcp.McpManagerBridge;
@@ -146,7 +147,8 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
         final McpPolicyManager policy = new McpPolicyManager();
         final McpAuditLog audit = new McpAuditLog();
         final McpGate gate = new McpGate(registry, policy, audit);
-        final McpExecutor executor = new McpExecutor(registry, policy, gate);
+        final McpConfirmationManager confirmations = new McpConfirmationManager();
+        final McpExecutor executor = new McpExecutor(registry, policy, gate, confirmations);
         executor.register(new PackagesListTool());
 
         final McpTransportServer transport = new McpTransportServer(executor);
@@ -183,7 +185,7 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
             }
         };
 
-        return new McpManagerBridge(registry, policy, audit, control);
+        return new McpManagerBridge(registry, policy, audit, control, confirmations);
     }
 
     @Override

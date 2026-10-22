@@ -6,11 +6,13 @@ server. It is built **security-first, on purpose**: this layer ships before any
 capability tool exists, so the gate and audit trail are in place before
 anything privileged can be wired in.
 
-The first read-only capability (`packages.list`) and a loopback-only agent
-transport now exist. The transport is **disabled by default**; the device does
-not listen for agents until the user turns it on from the manager. Every agent
-request still passes through the gate, so an enabled transport grants nothing
-on its own.
+The first read-only capability (`packages.list`), a loopback-only agent
+transport, and the human confirmation channel now exist. The transport is
+**disabled by default**; the device does not listen for agents until the user
+turns it on from the manager. Every agent request still passes through the
+gate, so an enabled transport grants nothing on its own. A tool the gate marks
+`REQUIRE_CONFIRMATION` is parked until the user approves it in the manager —
+no approval, no run.
 
 ## Components
 
@@ -28,6 +30,7 @@ on its own.
 | `PackagesListTool` | First capability: lists installed packages (`READ_ONLY`). |
 | `McpExecutor` | Runs capabilities strictly behind the gate; publishes their descriptors into the registry. |
 | `McpTransportServer` | Loopback-only, newline-delimited JSON request/response server for agents. Disabled by default. |
+| `McpConfirmationManager` | Parks calls that need a human decision; blocks the agent call until approve/reject/timeout. Deny-by-default. |
 
 ## Security invariants
 
@@ -58,13 +61,26 @@ from a dev machine via `adb forward tcp:7231 tcp:7231`.
 
 Errors come back as `{"error":"...","code":"denied|unauthenticated|confirmation_required|..."}`.
 
+## Confirmation flow
+
+1. Agent calls a tool the gate marks `REQUIRE_CONFIRMATION` (any `SENSITIVE`
+   tool, or a non-trusted `STATE_CHANGE` tool).
+2. The executor parks the call in `McpConfirmationManager` and blocks the
+   transport thread; the agent's socket call waits.
+3. The manager polls `listPending`, shows the request, and the user approves or
+   rejects it (`resolveConfirmation`).
+4. On approve the tool runs and the result returns to the agent; on reject or
+   timeout the agent gets `{"error":...,"code":"rejected"}` and the tool body
+   never runs.
+
 ## What comes next (not in this change)
 
-- Agent-facing confirmation channel, so `SENSITIVE`/confirming tools can round-trip
-  a prompt to the manager. Until it exists, such tools are refused at the gate.
+- The first confirming capability tool, which will exercise this channel live.
+  Until one is registered the channel stays dormant (only `packages.list`,
+  which is `READ_ONLY`, exists).
 - More capability tools, added one at a time, each with its own `DangerLevel`
   and justification. The dangerous verbs (notification read, input injection,
-  install, AppOps writes) come last and individually, behind that confirmation.
+  install, AppOps writes) come last and individually, behind this confirmation.
 
 ## Tests
 
@@ -74,6 +90,8 @@ allowlist enforcement, the SENSITIVE-always-confirms rule, token-hash-only
 persistence, revocation, reload, audit capture, the manager bridge's JSON
 contract, executor routing (allowed read-only runs; sensitive body never runs
 without confirmation; per-agent `listForToken` filtering), and a real loopback
-transport round-trip (echo, bad-token denial, missing-token, `op:list`) — 48
-checks, all passing. `PackagesListTool` needs real system services and is
-verified by compilation only.
+transport round-trip (echo, bad-token denial, missing-token, `op:list`), and
+the confirmation channel (approve runs the tool; reject and timeout never run
+it; `listPending`/`resolveConfirmation` over the bridge) — 61 checks, all
+passing. `PackagesListTool` needs real system services and is verified by
+compilation only.

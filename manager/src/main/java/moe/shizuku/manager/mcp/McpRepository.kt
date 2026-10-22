@@ -56,6 +56,15 @@ object McpRepository {
 
     data class TransportStatus(val running: Boolean, val port: Int)
 
+    data class PendingRequest(
+        val id: String,
+        val agentId: String,
+        val agentLabel: String,
+        val tool: String,
+        val argsSummary: String?,
+        val createdAt: Long
+    )
+
     class McpException(message: String) : RuntimeException(message)
 
     private fun call(method: String, args: JsonObject? = null): JsonObject {
@@ -157,6 +166,27 @@ object McpRepository {
     private fun parseStatus(resp: JsonObject): TransportStatus {
         val data = resp.getAsJsonObject("data")
         return TransportStatus(data.get("running").asBoolean, data.get("port").asInt)
+    }
+
+    fun listPending(): List<PendingRequest> =
+        call("listPending").getAsJsonArray("data").map { el ->
+            val o = el.asJsonObject
+            PendingRequest(
+                o.get("id").asString,
+                o.get("agentId").asString,
+                o.get("agentLabel").asString,
+                o.get("tool").asString,
+                o.get("argsSummary").takeIf { !it.isJsonNull }?.asString,
+                o.get("createdAt").asLong
+            )
+        }
+
+    fun resolveConfirmation(id: String, approved: Boolean): Boolean {
+        val args = JsonObject().apply {
+            addProperty("id", id)
+            addProperty("approved", approved)
+        }
+        return call("resolveConfirmation", args).getAsJsonObject("data").get("ok").asBoolean
     }
 
     private fun parseDanger(name: String): DangerLevel = try {

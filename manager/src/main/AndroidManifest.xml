@@ -76,6 +76,9 @@
             android:name=".mcp.McpAuditActivity"
             android:label="@string/mcp_audit_title" />
         <activity
+            android:name=".mcp.McpPendingActivity"
+            android:label="@string/mcp_pending_title" />
+        <activity
             android:name=".adb.AdbPairingTutorialActivity"
             android:label="@string/adb_pairing" />
         <activity

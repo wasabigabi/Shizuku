@@ -44,21 +44,31 @@ public final class McpManagerBridge {
     private final McpPolicyManager policy;
     private final McpAuditLog audit;
     private final TransportControl transport;
+    private final McpConfirmationManager confirmations;
 
     public McpManagerBridge(@NonNull McpToolRegistry registry,
                             @NonNull McpPolicyManager policy,
                             @NonNull McpAuditLog audit) {
-        this(registry, policy, audit, NO_TRANSPORT);
+        this(registry, policy, audit, NO_TRANSPORT, null);
     }
 
     public McpManagerBridge(@NonNull McpToolRegistry registry,
                             @NonNull McpPolicyManager policy,
                             @NonNull McpAuditLog audit,
                             @NonNull TransportControl transport) {
+        this(registry, policy, audit, transport, null);
+    }
+
+    public McpManagerBridge(@NonNull McpToolRegistry registry,
+                            @NonNull McpPolicyManager policy,
+                            @NonNull McpAuditLog audit,
+                            @NonNull TransportControl transport,
+                            McpConfirmationManager confirmations) {
         this.registry = registry;
         this.policy = policy;
         this.audit = audit;
         this.transport = transport;
+        this.confirmations = confirmations;
     }
 
     /**
@@ -92,12 +102,34 @@ public final class McpManagerBridge {
                     return transportStatus();
                 case "setTransportEnabled":
                     return setTransportEnabled(args.get("enabled").getAsBoolean());
+                case "listPending":
+                    return ok(listPending());
+                case "resolveConfirmation":
+                    return boolResult(confirmations != null
+                            && confirmations.resolve(req(args, "id"), args.get("approved").getAsBoolean()));
                 default:
                     return error("unknown method: " + method);
             }
         } catch (Throwable tr) {
             return error(tr.getClass().getSimpleName() + ": " + tr.getMessage());
         }
+    }
+
+    private JsonArray listPending() {
+        JsonArray arr = new JsonArray();
+        if (confirmations != null) {
+            for (McpConfirmationManager.Pending p : confirmations.list()) {
+                JsonObject o = new JsonObject();
+                o.addProperty("id", p.id);
+                o.addProperty("agentId", p.agentId);
+                o.addProperty("agentLabel", p.agentLabel);
+                o.addProperty("tool", p.tool);
+                o.addProperty("argsSummary", p.argsSummary);
+                o.addProperty("createdAt", p.createdAt);
+                arr.add(o);
+            }
+        }
+        return arr;
     }
 
     private String setTransportEnabled(boolean enabled) {

@@ -209,4 +209,10 @@ With %1$s, in any terminal app, you can connect to and interact with the shell r
     <string name="mcp_transport_disable">Disable</string>
     <string name="mcp_transport_message">%1$s\n\nAgents connect over local loopback only — never a routable address. From a computer with ADB:\n\nadb forward tcp:%2$d tcp:%2$d\n\nThe agent then connects to 127.0.0.1:%2$d and sends its token with every request. Only allowlisted tools run; sensitive tools still require confirmation.</string>
 
+    <string name="mcp_pending_title">Pending confirmations</string>
+    <string name="mcp_pending_empty">Nothing waiting for approval.</string>
+    <string name="mcp_pending_summary">%1$s · %2$s · %3$s</string>
+    <string name="mcp_pending_approve">Approve</string>
+    <string name="mcp_pending_reject">Reject</string>
+
 </resources>

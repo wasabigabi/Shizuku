@@ -106,6 +106,9 @@ class McpAgentsActivity : AppBarActivity() {
                 startActivity(Intent(this, McpAuditActivity::class.java)); true
             }
             R.id.action_transport -> { showTransportDialog(); true }
+            R.id.action_pending -> {
+                startActivity(Intent(this, McpPendingActivity::class.java)); true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
