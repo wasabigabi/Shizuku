@@ -61,6 +61,9 @@ import rikka.shizuku.server.mcp.McpPolicyManager;
 import rikka.shizuku.server.mcp.McpToolRegistry;
 import rikka.shizuku.server.mcp.McpTransportServer;
 import rikka.shizuku.server.mcp.PackagesListTool;
+import rikka.shizuku.server.mcp.ProviderSettingsAccess;
+import rikka.shizuku.server.mcp.SettingsGetTool;
+import rikka.shizuku.server.mcp.SettingsPutTool;
 import rikka.shizuku.server.util.HandlerUtil;
 import rikka.shizuku.server.util.UserHandleCompat;
 
@@ -150,6 +153,9 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
         final McpConfirmationManager confirmations = new McpConfirmationManager();
         final McpExecutor executor = new McpExecutor(registry, policy, gate, confirmations);
         executor.register(new PackagesListTool());
+        final ProviderSettingsAccess settings = new ProviderSettingsAccess();
+        executor.register(new SettingsGetTool(settings));
+        executor.register(new SettingsPutTool(settings));
 
         final McpTransportServer transport = new McpTransportServer(executor);
         if (policy.isTransportEnabled()) {

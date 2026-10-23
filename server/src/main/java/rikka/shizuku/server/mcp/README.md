@@ -27,7 +27,9 @@ no approval, no run.
 | `McpGate` | The single enforcement point. Every call is authorized and audited here. |
 | `McpAuditLog` | Append-only JSONL trail of every decision and outcome, with a bounded in-memory tail for the manager UI. |
 | `CapabilityTool` | A runnable tool: its descriptor plus an `execute`. |
-| `PackagesListTool` | First capability: lists installed packages (`READ_ONLY`). |
+| `PackagesListTool` | Lists installed packages (`READ_ONLY`). |
+| `SettingsGetTool` / `SettingsPutTool` | Read / write one setting. `get` is `READ_ONLY`; `put` is `STATE_CHANGE` (confirmation-gated). |
+| `SettingsAccess` / `ProviderSettingsAccess` | Settings I/O abstraction; the real impl drives the system `settings` content provider. |
 | `McpExecutor` | Runs capabilities strictly behind the gate; publishes their descriptors into the registry. |
 | `McpTransportServer` | Loopback-only, newline-delimited JSON request/response server for agents. Disabled by default. |
 | `McpConfirmationManager` | Parks calls that need a human decision; blocks the agent call until approve/reject/timeout. Deny-by-default. |
@@ -75,9 +77,6 @@ Errors come back as `{"error":"...","code":"denied|unauthenticated|confirmation_
 
 ## What comes next (not in this change)
 
-- The first confirming capability tool, which will exercise this channel live.
-  Until one is registered the channel stays dormant (only `packages.list`,
-  which is `READ_ONLY`, exists).
 - More capability tools, added one at a time, each with its own `DangerLevel`
   and justification. The dangerous verbs (notification read, input injection,
   install, AppOps writes) come last and individually, behind this confirmation.
@@ -92,6 +91,8 @@ contract, executor routing (allowed read-only runs; sensitive body never runs
 without confirmation; per-agent `listForToken` filtering), and a real loopback
 transport round-trip (echo, bad-token denial, missing-token, `op:list`), and
 the confirmation channel (approve runs the tool; reject and timeout never run
-it; `listPending`/`resolveConfirmation` over the bridge) — 61 checks, all
-passing. `PackagesListTool` needs real system services and is verified by
-compilation only.
+it; `listPending`/`resolveConfirmation` over the bridge), and the settings
+tools against a fake `SettingsAccess` (namespace/key validation; `get` runs
+freely; `put` parks and writes only after approval) — 74 checks, all passing.
+`PackagesListTool` and `ProviderSettingsAccess` need real system services and
+are verified by compilation only.
