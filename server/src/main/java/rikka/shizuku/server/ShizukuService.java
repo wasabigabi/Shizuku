@@ -61,6 +61,8 @@ import rikka.shizuku.server.mcp.McpPolicyManager;
 import rikka.shizuku.server.mcp.McpToolRegistry;
 import rikka.shizuku.server.mcp.McpTransportServer;
 import rikka.shizuku.server.mcp.PackagesListTool;
+import rikka.shizuku.server.mcp.AppOpsGetTool;
+import rikka.shizuku.server.mcp.AppOpsSetTool;
 import rikka.shizuku.server.mcp.ProviderSettingsAccess;
 import rikka.shizuku.server.mcp.SettingsGetTool;
 import rikka.shizuku.server.mcp.SettingsPutTool;
@@ -156,6 +158,8 @@ public class ShizukuService extends Service<ShizukuUserServiceManager, ShizukuCl
         final ProviderSettingsAccess settings = new ProviderSettingsAccess();
         executor.register(new SettingsGetTool(settings));
         executor.register(new SettingsPutTool(settings));
+        executor.register(new AppOpsGetTool());
+        executor.register(new AppOpsSetTool());
 
         final McpTransportServer transport = new McpTransportServer(executor);
         if (policy.isTransportEnabled()) {

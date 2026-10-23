@@ -26,4 +26,6 @@ dependencies {
     compileOnly libs.hidden.stub
     annotationProcessor libs.refine.annotation.processor
     implementation libs.refine.annotation
+    // Refine.unsafeCast, used to view hidden AppOps result types (mcp appops tools).
+    implementation libs.refine.runtime
 }

@@ -30,6 +30,8 @@ no approval, no run.
 | `PackagesListTool` | Lists installed packages (`READ_ONLY`). |
 | `SettingsGetTool` / `SettingsPutTool` | Read / write one setting. `get` is `READ_ONLY`; `put` is `STATE_CHANGE` (confirmation-gated). |
 | `SettingsAccess` / `ProviderSettingsAccess` | Settings I/O abstraction; the real impl drives the system `settings` content provider. |
+| `AppOpsGetTool` / `AppOpsSetTool` | Read / set AppOps modes. `get` is `READ_ONLY`; `set` is `SENSITIVE` — always confirmed, never pre-trusted. |
+| `AppOpsModes` / `AppOpsArgs` | Mode name/code mapping (pure) and shared arg parsing (op, uid resolution). |
 | `McpExecutor` | Runs capabilities strictly behind the gate; publishes their descriptors into the registry. |
 | `McpTransportServer` | Loopback-only, newline-delimited JSON request/response server for agents. Disabled by default. |
 | `McpConfirmationManager` | Parks calls that need a human decision; blocks the agent call until approve/reject/timeout. Deny-by-default. |
@@ -78,8 +80,11 @@ Errors come back as `{"error":"...","code":"denied|unauthenticated|confirmation_
 ## What comes next (not in this change)
 
 - More capability tools, added one at a time, each with its own `DangerLevel`
-  and justification. The dangerous verbs (notification read, input injection,
-  install, AppOps writes) come last and individually, behind this confirmation.
+  and justification. Remaining high-impact verbs (notification read, input
+  injection, package install) stay behind the SENSITIVE confirmation, added
+  individually.
+- A high-risk classification in the confirmation UI (highlight or hard-deny
+  known-dangerous targets), so the human decision is better informed.
 
 ## Tests
 
@@ -93,6 +98,8 @@ transport round-trip (echo, bad-token denial, missing-token, `op:list`), and
 the confirmation channel (approve runs the tool; reject and timeout never run
 it; `listPending`/`resolveConfirmation` over the bridge), and the settings
 tools against a fake `SettingsAccess` (namespace/key validation; `get` runs
-freely; `put` parks and writes only after approval) — 74 checks, all passing.
-`PackagesListTool` and `ProviderSettingsAccess` need real system services and
-are verified by compilation only.
+freely; `put` parks and writes only after approval), AppOps mode parsing, and
+the SENSITIVE rule that `appops.set` parks for confirmation even when the agent
+has it pre-trusted — 86 checks, all passing. `PackagesListTool`,
+`ProviderSettingsAccess`, `AppOpsGetTool` and `AppOpsSetTool` need real system
+services and are verified by compilation only.
